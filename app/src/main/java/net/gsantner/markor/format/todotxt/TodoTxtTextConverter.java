@@ -14,10 +14,9 @@ import android.support.v4.text.TextUtilsCompat;
 
 import net.gsantner.markor.format.TextConverter;
 import net.gsantner.opoc.format.todotxt.SttCommander;
+import net.gsantner.opoc.util.FileUtils;
 
 import java.io.File;
-
-import other.de.stanetz.jpencconverter.JavaPasswordbasedCryption;
 
 @SuppressWarnings("WeakerAccess")
 public class TodoTxtTextConverter extends TextConverter {
@@ -51,6 +50,6 @@ public class TodoTxtTextConverter extends TextConverter {
 
     @Override
     public boolean isFileOutOfThisFormat(String filepath) {
-        return SttCommander.isTodoFile(filepath.replace(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION, ""));
+        return SttCommander.isTodoFile(FileUtils.stripEncryptionExtension(filepath));
     }
 }

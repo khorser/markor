@@ -37,13 +37,12 @@ import com.vladsch.flexmark.util.options.MutableDataSet;
 import net.gsantner.markor.R;
 import net.gsantner.markor.format.TextConverter;
 import net.gsantner.markor.util.AppSettings;
+import net.gsantner.opoc.util.FileUtils;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import other.de.stanetz.jpencconverter.JavaPasswordbasedCryption;
 
 @SuppressWarnings("WeakerAccess")
 public class MarkdownTextConverter extends TextConverter {
@@ -244,7 +243,7 @@ public class MarkdownTextConverter extends TextConverter {
 
     @Override
     public boolean isFileOutOfThisFormat(String filepath) {
-        filepath = filepath.replace(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION, "");
+        filepath = FileUtils.stripEncryptionExtension(filepath);
         return (MarkdownTextConverter.PATTERN_HAS_FILE_EXTENSION_FOR_THIS_FORMAT.matcher(filepath).matches() && !filepath.toLowerCase().endsWith(".txt")) || filepath.toLowerCase().endsWith(".md.txt");
     }
 }

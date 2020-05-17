@@ -11,15 +11,12 @@ package net.gsantner.markor.util;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.TextUtils;
-import android.util.Log;
-import android.widget.Toast;
+
 
 import net.gsantner.markor.R;
 import net.gsantner.markor.activity.MainActivity;
@@ -29,15 +26,8 @@ import net.gsantner.markor.model.Document;
 import net.gsantner.opoc.util.FileUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.Locale;
 import java.util.UUID;
-
-import other.de.stanetz.jpencconverter.JavaPasswordbasedCryption;
-import other.de.stanetz.jpencconverter.PasswordStore;
 
 public class DocumentIO {
     public static final String EXTRA_DOCUMENT = "EXTRA_DOCUMENT"; // Document
@@ -86,28 +76,10 @@ public class DocumentIO {
                 filePath = new File(extraPath, String.format("%s-%s%s", context.getString(R.string.document), UUID.randomUUID().toString(), MarkdownTextConverter.EXT_MARKDOWN__MD));
             }
         } else if (filePath.isFile() && filePath.canRead()) {
+            final EncryptorDecryptor dec = EncryptorDecryptorFactory.getByExtension(filePath, context);
             // Extract content and title
             document.setTitle(filePath.getName());
-            String content;
-            if (isEncryptedFile(filePath) && getPassword(context) != null) {
-                try {
-                    final byte[] encyptedContext = FileUtils.readCloseStreamWithSize(new FileInputStream(filePath), (int) filePath.length());
-                    if (encyptedContext.length > JavaPasswordbasedCryption.Version.NAME_LENGTH) {
-                        content = JavaPasswordbasedCryption.getDecyptedText(encyptedContext, getPassword(context));
-                    } else {
-                        content = new String(encyptedContext, StandardCharsets.UTF_8);
-                    }
-                } catch (FileNotFoundException e) {
-                    Log.e(DocumentIO.class.getName(), "loadDocument:  File " + filePath + " not found.");
-                    content = "";
-                } catch (JavaPasswordbasedCryption.EncryptionFailedException | IllegalArgumentException e) {
-                    Toast.makeText(context, R.string.could_not_decrypt_file_content_wrong_password_or_is_the_file_maybe_not_encrypted, Toast.LENGTH_LONG).show();
-                    Log.e(DocumentIO.class.getName(), "loadDocument:  decrypt failed for File " + filePath + ". " + e.getMessage(), e);
-                    content = "";
-                }
-            } else {
-                content = FileUtils.readTextFileFast(filePath);
-            }
+            String content = dec.decrypt();
             document.setContent(content);
             document.setModTime(filePath.lastModified());
         }
@@ -170,7 +142,6 @@ public class DocumentIO {
     }
 
     private static boolean writeContent(Document document, String text, ShareUtil shareUtil, Context context) {
-        boolean ret;
         document.forceAddNextChangeToHistory();
         document.setContent(text + (!TextUtils.isEmpty(text) && !text.endsWith("\n") ? "\n" : ""));
 
@@ -179,32 +150,23 @@ public class DocumentIO {
             //noinspection ResultOfMethodCallIgnored
             document.getFile().getParentFile().mkdirs();
         }
-        try {
-            final byte[] contentAsBytes;
-            if (isEncryptedFile(document.getFile()) && getPassword(context) != null) {
-                contentAsBytes = new JavaPasswordbasedCryption(JavaPasswordbasedCryption.Version.V001, new SecureRandom()).encrypt(document.getContent(), getPassword(context));
-            } else {
-                contentAsBytes = document.getContent().getBytes();
-            }
 
-            if (shareUtil.isUnderStorageAccessFolder(document.getFile())) {
-                shareUtil.writeFile(document.getFile(), false, (fileOpened, fos) -> {
-                    try {
-                        fos.write(contentAsBytes);
-                    } catch (Exception ignored) {
-                    }
-                });
-                ret = true;
-            } else {
-                ret = FileUtils.writeFile(document.getFile(), contentAsBytes);
-            }
-        } catch (JavaPasswordbasedCryption.EncryptionFailedException e) {
-            Log.e(DocumentIO.class.getName(), "loadDocument:  enrypt failed for File " +
-                    document.getFile().getAbsolutePath() + ". " + e.getMessage(), e);
-            Toast.makeText(context, R.string.could_not_encrypt_file_content_the_file_was_not_saved, Toast.LENGTH_LONG).show();
-            ret = false;
+        final EncryptorDecryptor enc = EncryptorDecryptorFactory.getByExtension(document.getFile(), context);
+        final byte[] contentAsBytes = enc.encrypt(document.getContent());
+        if (contentAsBytes == null)
+            return false;
+
+        if (shareUtil.isUnderStorageAccessFolder(document.getFile())) {
+            shareUtil.writeFile(document.getFile(), false, (fileOpened, fos) -> {
+                try {
+                    fos.write(contentAsBytes);
+                } catch (Exception ignored) {
+                }
+            });
+            return true;
+        } else {
+            return FileUtils.writeFile(document.getFile(), contentAsBytes);
         }
-        return ret;
     }
 
     public static String getMaskedContent(Document document) {
@@ -252,22 +214,4 @@ public class DocumentIO {
             return null;
         }
     };
-
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private static char[] getPassword(Context context) {
-        final PasswordStore securityStore = new PasswordStore(context);
-        final char[] pw = securityStore.loadKey(R.string.pref_key__default_encryption_password);
-        if (pw == null || pw.length == 0) {
-            final String warningText = context.getString(R.string.no_password_set_cannot_encrypt_decrypt);
-            Toast.makeText(context, warningText, Toast.LENGTH_LONG).show();
-            Log.w(DocumentIO.class.getName(), warningText);
-            return null;
-        }
-        return pw;
-    }
-
-    private static boolean isEncryptedFile(File file) {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && file.getName().endsWith(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION);
-    }
-
 }

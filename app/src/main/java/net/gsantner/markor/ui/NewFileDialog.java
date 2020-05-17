@@ -30,19 +30,17 @@ import android.widget.Spinner;
 
 import net.gsantner.markor.R;
 import net.gsantner.markor.util.AppSettings;
+import net.gsantner.markor.util.EncryptorDecryptorFactory;
 import net.gsantner.markor.util.ShareUtil;
 import net.gsantner.opoc.format.todotxt.SttCommander;
 import net.gsantner.opoc.ui.AndroidSpinnerOnItemSelectedAdapter;
 import net.gsantner.opoc.util.Callback;
 import net.gsantner.opoc.util.ContextUtils;
+import net.gsantner.opoc.util.FileUtils;
 
 import java.io.File;
-import java.security.SecureRandom;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import other.de.stanetz.jpencconverter.JavaPasswordbasedCryption;
-import other.de.stanetz.jpencconverter.PasswordStore;
 
 public class NewFileDialog extends DialogFragment {
     public static final String FRAGMENT_TAG = "net.gsantner.markor.ui.NewFileDialog";
@@ -109,7 +107,7 @@ public class NewFileDialog extends DialogFragment {
 
             if (ext != null) {
                 if (encryptCheckbox.isChecked()) {
-                    fileExtEdit.setText(ext + JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION);
+                    fileExtEdit.setText(FileUtils.appendEncryptionExtension(ext));
                 } else {
                     fileExtEdit.setText(ext);
                 }
@@ -132,11 +130,9 @@ public class NewFileDialog extends DialogFragment {
         encryptCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             final String currentExtention = fileExtEdit.getText().toString();
             if (isChecked) {
-                if (!currentExtention.endsWith(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION)) {
-                    fileExtEdit.setText(currentExtention + JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION);
-                }
-            } else if (currentExtention.endsWith(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION)) {
-                fileExtEdit.setText(currentExtention.replace(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION, ""));
+                fileExtEdit.setText(FileUtils.appendEncryptionExtension(currentExtention));
+            } else {
+                fileExtEdit.setText(FileUtils.stripEncryptionExtension(currentExtention));
             }
             appSettings.setNewFileDialogLastUsedEncryption(isChecked);
         });
@@ -154,7 +150,7 @@ public class NewFileDialog extends DialogFragment {
 
                     appSettings.setNewFileDialogLastUsedExtension(fileExtEdit.getText().toString().trim());
                     final File f = new File(basedir, fileNameEdit.getText().toString().trim() + fileExtEdit.getText().toString().trim());
-                    final byte[] templateContents = getTemplateContent(templateSpinner, basedir, encryptCheckbox.isChecked());
+                    final byte[] templateContents = getTemplateContent(templateSpinner, basedir, f, encryptCheckbox.isChecked());
                     shareUtil.writeFile(f, false, (arg_ok, arg_fos) -> {
                         try {
                             if (f.exists() && f.length() < 5 && templateContents != null) {
@@ -200,7 +196,7 @@ public class NewFileDialog extends DialogFragment {
     //
     // 2) t = "<cursor>";  | ctrl+shift+v "paste without formatting"
     //
-    private byte[] getTemplateContent(final Spinner templateSpinner, final File basedir, final boolean encrypt) {
+    private byte[] getTemplateContent(final Spinner templateSpinner, final File basedir, File file, final boolean encrypt) {
         String t = null;
         byte[] bytes = null;
         switch (templateSpinner.getSelectedItemPosition()) {
@@ -242,11 +238,6 @@ public class NewFileDialog extends DialogFragment {
         }
         t = t.replace("{{ template.timestamp_date_yyyy_mm_dd }}", SttCommander.DATEF_YYYY_MM_DD.format(new Date()));
 
-        if (encrypt && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            bytes = new JavaPasswordbasedCryption(JavaPasswordbasedCryption.Version.V001, new SecureRandom()).encrypt(t, new PasswordStore(getContext()).loadKey(R.string.pref_key__default_encryption_password));
-        } else {
-            bytes = t.getBytes();
-        }
-        return bytes;
+        return EncryptorDecryptorFactory.getApplicable(encrypt, file, getContext()).encrypt(t);
     }
 }

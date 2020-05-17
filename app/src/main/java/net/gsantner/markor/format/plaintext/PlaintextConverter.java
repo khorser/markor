@@ -14,12 +14,11 @@ import android.support.v4.text.TextUtilsCompat;
 
 import net.gsantner.markor.format.TextConverter;
 import net.gsantner.markor.util.AppSettings;
+import net.gsantner.opoc.util.FileUtils;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-
-import other.de.stanetz.jpencconverter.JavaPasswordbasedCryption;
 
 @SuppressWarnings("WeakerAccess")
 public class PlaintextConverter extends TextConverter {
@@ -53,7 +52,7 @@ public class PlaintextConverter extends TextConverter {
     @Override
     public boolean isFileOutOfThisFormat(String filepath) {
         AppSettings appSettings = AppSettings.get();
-        filepath = filepath.replace(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION, "");
+        filepath = FileUtils.stripEncryptionExtension(filepath);
         if (!filepath.contains(".")) {
             return appSettings.isExtOpenWithThisApp("");
         }

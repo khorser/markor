@@ -935,10 +935,7 @@ public class ContextUtils {
             ContentResolver cr = _context.getContentResolver();
             mimeType = cr.getType(uri);
         } else {
-            String filename = uri.toString();
-            if (filename.endsWith(".jenc")) {
-                filename = filename.replace(".jenc", "");
-            }
+            String filename = FileUtils.stripEncryptionExtension(uri.toString());
             String ext = MimeTypeMap.getFileExtensionFromUrl(filename);
             mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
 

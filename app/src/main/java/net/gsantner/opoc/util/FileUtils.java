@@ -37,6 +37,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import static other.de.stanetz.jpencconverter.JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION;
+
 @SuppressWarnings({"WeakerAccess", "unused", "SameParameterValue", "SpellCheckingInspection", "deprecation"})
 public class FileUtils {
     // Used on methods like copyFile(src, dst)
@@ -409,7 +411,7 @@ public class FileUtils {
 
             if (guess == null || guess.isEmpty()) {
                 guess = "*/*";
-                String filename = file.getName().replace(".jenc", "");
+                String filename = stripEncryptionExtension(file.getName());
                 int dot = filename.lastIndexOf(".") + 1;
                 if (dot > 0 && dot < filename.length()) {
                     switch (filename.substring(dot)) {
@@ -488,5 +490,19 @@ public class FileUtils {
         ret[1] = (int) (diff / (1000 * 60)) % 60; // min
         ret[2] = (int) (diff / 1000) % 60; // sec
         return ret;
+    }
+
+    public static String stripEncryptionExtension(String filename) {
+        if (filename.endsWith(DEFAULT_ENCRYPTION_EXTENSION))
+            return filename.substring(0, filename.length() - DEFAULT_ENCRYPTION_EXTENSION.length());
+        else
+            return filename;
+    }
+
+    public static String appendEncryptionExtension(String filename) {
+        if (!filename.endsWith(DEFAULT_ENCRYPTION_EXTENSION))
+            return filename + DEFAULT_ENCRYPTION_EXTENSION;
+        else
+            return filename;
     }
 }
