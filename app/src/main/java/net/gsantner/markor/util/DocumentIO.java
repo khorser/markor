@@ -9,14 +9,14 @@
 #########################################################*/
 package net.gsantner.markor.util;
 
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.TextUtils;
-
+import android.util.Log;
 
 import net.gsantner.markor.R;
 import net.gsantner.markor.activity.MainActivity;
@@ -26,6 +26,8 @@ import net.gsantner.markor.model.Document;
 import net.gsantner.opoc.util.FileUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -37,7 +39,7 @@ public class DocumentIO {
     public static final int MAX_TITLE_EXTRACTION_LENGTH = 25;
     public static boolean SAVE_IGNORE_EMTPY_NEXT_TIME = false;
 
-    public static Document loadDocument(Context context, Intent arguments, @Nullable Document existingDocument) {
+    public static Document loadDocument(Activity activity, Intent arguments, @Nullable Document existingDocument) {
         if (existingDocument != null) {
             return existingDocument;
         }
@@ -49,11 +51,11 @@ public class DocumentIO {
             bundle.putSerializable(EXTRA_PATH, arguments.getSerializableExtra(EXTRA_PATH));
             bundle.putBoolean(EXTRA_PATH_IS_FOLDER, arguments.getBooleanExtra(EXTRA_PATH_IS_FOLDER, false));
         }
-        return loadDocument(context, bundle, existingDocument);
+        return loadDocument(activity, bundle, existingDocument);
     }
 
     @SuppressWarnings({"ConstantConditions", "ResultOfMethodCallIgnored"})
-    public static synchronized Document loadDocument(Context context, Bundle arguments, @Nullable Document existingDocument) {
+    public static synchronized Document loadDocument(Activity activity, Bundle arguments, @Nullable Document existingDocument) {
         if (existingDocument != null) {
             return existingDocument;
         }
@@ -73,15 +75,23 @@ public class DocumentIO {
         if (extraPathIsFolder) {
             extraPath.mkdirs();
             while (filePath.exists()) {
-                filePath = new File(extraPath, String.format("%s-%s%s", context.getString(R.string.document), UUID.randomUUID().toString(), MarkdownTextConverter.EXT_MARKDOWN__MD));
+                filePath = new File(extraPath, String.format("%s-%s%s", activity.getString(R.string.document), UUID.randomUUID().toString(), MarkdownTextConverter.EXT_MARKDOWN__MD));
             }
         } else if (filePath.isFile() && filePath.canRead()) {
-            final EncryptorDecryptor dec = EncryptorDecryptorFactory.getByExtension(filePath, context);
+            if (document.getCrypto() == null)
+                document.setCrypto(CryptoServiceHelper.getByExtension(filePath, activity));
             // Extract content and title
             document.setTitle(filePath.getName());
-            String content = dec.decrypt();
-            document.setContent(content);
-            document.setModTime(filePath.lastModified());
+            String content = null;
+            try {
+                content = document.getCrypto().decrypt(activity, FileUtils.readCloseStreamWithSize(new FileInputStream(filePath), (int) filePath.length()));
+            } catch (FileNotFoundException e) {
+                Log.e(DocumentIO.class.getName(), "loadDocument:  File " + filePath + " not found.");
+            }
+            if (content != null) {
+                document.setContent(content);
+                document.setModTime(filePath.lastModified());
+            }
         }
 
         document.setFile(filePath);
@@ -120,7 +130,7 @@ public class DocumentIO {
         return document;
     }
 
-    public static synchronized boolean saveDocument(final Document document, final String text, final ShareUtil shareUtil, Context context) {
+    public static synchronized boolean saveDocument(Activity activity, final Document document, final String text, final ShareUtil shareUtil) {
         if (text == null || (!SAVE_IGNORE_EMTPY_NEXT_TIME && text.trim().isEmpty() && text.length() < 5)) {
             return false;
         }
@@ -134,14 +144,14 @@ public class DocumentIO {
         document.setFile(documentInitial.getFile());
 
         if (!text.equals(documentInitial.getContent())) {
-            ret = writeContent(document, text, shareUtil, context);
+            ret = writeContent(activity, document, text, shareUtil);
         } else {
             ret = true;
         }
         return ret;
     }
 
-    private static boolean writeContent(Document document, String text, ShareUtil shareUtil, Context context) {
+    private static boolean writeContent(Activity activity, Document document, String text, ShareUtil shareUtil) {
         document.forceAddNextChangeToHistory();
         document.setContent(text + (!TextUtils.isEmpty(text) && !text.endsWith("\n") ? "\n" : ""));
 
@@ -151,9 +161,11 @@ public class DocumentIO {
             document.getFile().getParentFile().mkdirs();
         }
 
-        final EncryptorDecryptor enc = EncryptorDecryptorFactory.getByExtension(document.getFile(), context);
-        final byte[] contentAsBytes = enc.encrypt(document.getContent());
-        if (contentAsBytes == null)
+        if (document.getCrypto() == null) {
+            document.setCrypto(CryptoServiceHelper.getByExtension(document.getFile(), activity));
+        }
+        final byte[] contentAsBytes = document.getCrypto().encrypt(activity, document.getContent());
+        if (contentAsBytes == null || contentAsBytes.length == 0)
             return false;
 
         if (shareUtil.isUnderStorageAccessFolder(document.getFile())) {

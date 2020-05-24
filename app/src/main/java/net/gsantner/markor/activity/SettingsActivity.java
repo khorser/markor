@@ -17,21 +17,26 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.preference.EditTextPreference;
+import android.support.v7.preference.ListPreference;
 import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import android.support.v7.preference.PreferenceScreen;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
 import net.gsantner.markor.R;
 import net.gsantner.markor.ui.FilesystemViewerCreator;
 import net.gsantner.markor.util.ActivityUtils;
 import net.gsantner.markor.util.AppSettings;
 import net.gsantner.markor.util.ContextUtils;
+import net.gsantner.markor.util.CryptoServiceHelper;
+import net.gsantner.markor.util.OpenPgpEncryptorDecryptor;
 import net.gsantner.markor.util.PermissionChecker;
 import net.gsantner.opoc.preference.FontPreferenceCompat;
 import net.gsantner.opoc.preference.GsPreferenceFragmentCompat;
@@ -39,13 +44,15 @@ import net.gsantner.opoc.preference.SharedPreferencesPropertyBackend;
 import net.gsantner.opoc.ui.FilesystemViewerData;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import other.de.stanetz.jpencconverter.PasswordStore;
 import other.writeily.widget.WrMarkorWidgetProvider;
 
-public class SettingsActivity extends AppActivityBase {
+public class SettingsActivity extends AppActivityBase implements CryptoEnabledActivity {
 
     @SuppressWarnings("WeakerAccess")
     public static class RESULT {
@@ -56,6 +63,7 @@ public class SettingsActivity extends AppActivityBase {
 
     public static int activityRetVal = RESULT.NOCHANGE;
     private static int iconColor = Color.WHITE;
+    private CryptoServiceHelper _crypto = new CryptoServiceHelper();
 
     @BindView(R.id.toolbar)
     protected Toolbar toolbar;
@@ -84,7 +92,13 @@ public class SettingsActivity extends AppActivityBase {
         setSupportActionBar(toolbar);
         toolbar.setNavigationIcon(getResources().getDrawable(R.drawable.ic_arrow_back_white_24dp));
         toolbar.setNavigationOnClickListener(view -> SettingsActivity.this.onBackPressed());
-        showFragment(SettingsFragmentMaster.TAG, false);
+
+        _crypto.connect(this, new Runnable() {
+            @Override
+            public void run() {
+                showFragment(SettingsFragmentMaster.TAG, false);
+            }
+        });
     }
 
     protected void showFragment(String tag, boolean addToBackStack) {
@@ -207,6 +221,8 @@ public class SettingsActivity extends AppActivityBase {
                     R.string.pref_key__editor_line_spacing,
                     R.string.pref_key__todotxt__start_new_tasks_with_huuid_v2,
                     R.string.pref_key__default_encryption_password,
+                    R.string.pref_key__open_pgp_provider,
+                    R.string.pref_key__open_pgp_user_id,
             };
             for (final int keyId : experimentalKeys) {
                 setPreferenceVisible(keyId, _as.isExperimentalFeaturesEnabled());
@@ -238,6 +254,10 @@ public class SettingsActivity extends AppActivityBase {
                 prefs.edit().remove(key).commit();
                 ((EditTextPreference) findPreference(key)).setText("");
                 _as.setPasswordHasBeenSetOnce(true);
+            } else if (eq(key, R.string.pref_key__open_pgp_user_id)) {
+                if (!((CryptoEnabledActivity) getActivity()).getCrypto().areUserIdsValid(getActivity(), _as.getOpenPgpUserIds())) {
+                    Toast.makeText(getActivity(), "User IDs are not valid, you will not able to encrypt files", Toast.LENGTH_LONG).show();
+                }
             }
         }
 
@@ -357,6 +377,9 @@ public class SettingsActivity extends AppActivityBase {
                     startActivity(intent);
                     break;
                 }
+                case R.string.pref_key__open_pgp_provider:
+                    populateOpenPgpProviders((ListPreference) preference, true);
+                    break;
             }
 
             // Handling widget color scheme
@@ -383,5 +406,37 @@ public class SettingsActivity extends AppActivityBase {
             // Reset Password to ensure it's not stored as plaintext.
             _as.getDefaultPreferencesEditor().remove(getContext().getString(R.string.pref_key__default_encryption_password)).commit();
         }
+
+        private void populateOpenPgpProviders(ListPreference pref, boolean full) {
+            List<String> providers, names;
+            providers = new ArrayList<>(1);
+            names = new ArrayList<>(1);
+            providers.add(0, "");
+            names.add(0, getActivity().getString(R.string.none));
+
+            if (full)
+                OpenPgpEncryptorDecryptor.getOpenPgpProviderPackages(getActivity(), providers, names);
+            pref.setEntryValues(providers.toArray(new String[0]));
+            pref.setEntries(names.toArray(new String[0]));
+        }
+
+        @Override
+        public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+            super.onActivityCreated(savedInstanceState);
+            ListPreference providers = (ListPreference) findPreference(R.string.pref_key__open_pgp_provider);
+            // build the list of providers only if the user selected one already
+            populateOpenPgpProviders(providers, !providers.getValue().equals(""));
+        }
+    }
+
+    @Override
+    public CryptoServiceHelper getCrypto() {
+        return _crypto;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        _crypto.disconnect();
     }
 }

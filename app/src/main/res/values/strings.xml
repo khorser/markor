@@ -387,4 +387,7 @@ work. If not, see <https://creativecommons.org/publicdomain/zero/1.0/>.
     <string name="could_not_decrypt_file_content_wrong_password_or_is_the_file_maybe_not_encrypted">Could not decrypt file content. Did you use a wrong password? Is the file really encrypted with Markors AES encryption?</string>
     <string name="password_already_set_setting_a_new_password_will_overwrite">Password already set. Setting a new password will overwrite the existing password and you may not be able to access files anymore in case you forget the password.</string>
 
+    <string name="open_pgp_provider">OpenPGP provider</string>
+    <string name="error_communicating_with_open_pgp_provider">Error communicating with OpenPGP provider</string>
+    <string name="open_pgp_user_id">OpenPGP user ID (email)</string>
 </resources>

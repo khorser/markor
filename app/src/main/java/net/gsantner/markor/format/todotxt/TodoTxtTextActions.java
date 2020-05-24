@@ -38,7 +38,6 @@ import java.util.List;
 
 //TODO
 public class TodoTxtTextActions extends TextActions {
-
     public TodoTxtTextActions(Activity activity, Document document) {
         super(activity, document);
     }
@@ -209,7 +208,7 @@ public class TodoTxtTextActions extends TextActions {
                                 doneFileContents += TextUtils.join("\n", move).trim() + "\n";
 
                                 // Write to do done file
-                                if (DocumentIO.saveDocument(new Document(doneFile), doneFileContents, new ShareUtil(_activity), getContext())) {
+                                if (DocumentIO.saveDocument(_activity, new Document(doneFile), doneFileContents, new ShareUtil(_activity))) {
                                     // All went good
                                     _hlEditor.setText(TextUtils.join("\n", keep));
                                     int newIndex = _hlEditor.getText().toString().indexOf(newCursorTarget);

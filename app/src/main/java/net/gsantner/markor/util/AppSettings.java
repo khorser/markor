@@ -705,4 +705,13 @@ public class AppSettings extends SharedPreferencesPropertyBackend {
     public void setNewFileDialogLastUsedExtension(String v) {
         setString(R.string.pref_key__new_file_dialog_lastused_extension, v);
     }
+
+    public String getOpenPgpProvider() {
+        return getString(R.string.pref_key__open_pgp_provider, "");
+    }
+
+    public String[] getOpenPgpUserIds() {
+        // support only one value for now
+        return new String[]{getString(R.string.pref_key__open_pgp_user_id, "")};
+    }
 }

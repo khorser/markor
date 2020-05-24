@@ -156,4 +156,7 @@ dependencies {
             annotationProcessor anpro
         }
     }
+
+    // OpenPGP API
+    implementation 'org.sufficientlysecure:openpgp-api:12.0'
 }

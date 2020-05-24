@@ -1,7 +1,9 @@
 package net.gsantner.markor.util;
 
-public interface EncryptorDecryptor {
-    public String decrypt();
+import android.app.Activity;
 
-    public byte[] encrypt(String content);
+public interface EncryptorDecryptor {
+    public String decrypt(Activity activity, byte[] encrypted);
+
+    public byte[] encrypt(Activity activity, String content);
 }

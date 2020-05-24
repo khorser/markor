@@ -37,6 +37,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import static net.gsantner.markor.util.OpenPgpEncryptorDecryptor.ENCRYPTION_EXTENSION;
 import static other.de.stanetz.jpencconverter.JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION;
 
 @SuppressWarnings({"WeakerAccess", "unused", "SameParameterValue", "SpellCheckingInspection", "deprecation"})
@@ -495,6 +496,8 @@ public class FileUtils {
     public static String stripEncryptionExtension(String filename) {
         if (filename.endsWith(DEFAULT_ENCRYPTION_EXTENSION))
             return filename.substring(0, filename.length() - DEFAULT_ENCRYPTION_EXTENSION.length());
+        else if (filename.endsWith(ENCRYPTION_EXTENSION))
+            return filename.substring(0, filename.length() - ENCRYPTION_EXTENSION.length());
         else
             return filename;
     }
@@ -502,6 +505,8 @@ public class FileUtils {
     public static String appendEncryptionExtension(String filename) {
         if (!filename.endsWith(DEFAULT_ENCRYPTION_EXTENSION))
             return filename + DEFAULT_ENCRYPTION_EXTENSION;
+        else if (!filename.endsWith(ENCRYPTION_EXTENSION))
+            return filename + ENCRYPTION_EXTENSION;
         else
             return filename;
     }

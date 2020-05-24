@@ -33,6 +33,7 @@ import net.gsantner.markor.R;
 import net.gsantner.markor.model.Document;
 import net.gsantner.markor.util.ActivityUtils;
 import net.gsantner.markor.util.AppSettings;
+import net.gsantner.markor.util.CryptoServiceHelper;
 import net.gsantner.markor.util.DocumentIO;
 import net.gsantner.markor.util.PermissionChecker;
 import net.gsantner.opoc.activity.GsFragmentBase;
@@ -45,7 +46,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import other.so.AndroidBug5497Workaround;
 
-public class DocumentActivity extends AppActivityBase {
+public class DocumentActivity extends AppActivityBase implements CryptoEnabledActivity {
     public static final String EXTRA_DO_PREVIEW = "EXTRA_DO_PREVIEW";
     public static final String EXTRA_LAUNCHER_SHORTCUT_PATH = "real_file_path_2";
 
@@ -63,6 +64,8 @@ public class DocumentActivity extends AppActivityBase {
     private ActivityUtils _contextUtils;
 
     private static boolean nextLaunchTransparentBg = false;
+
+    private CryptoServiceHelper _crypto = new CryptoServiceHelper();
 
     public static void launch(Activity activity, File path, Boolean isFolder, Boolean doPreview, Intent intent) {
         if (intent == null) {
@@ -189,9 +192,20 @@ public class DocumentActivity extends AppActivityBase {
 
         if (file != null) {
             boolean preview = receivingIntent.getBooleanExtra(EXTRA_DO_PREVIEW, false) || _appSettings.isPreviewFirst() && file.exists() && file.isFile() || file.getName().startsWith("index.");
-            showTextEditor(null, file, fileIsFolder, preview);
+            File finalFile = file;
+            _crypto.connect(this, new Runnable() {
+                @Override
+                public void run() {
+                    showTextEditor(null, finalFile, fileIsFolder, preview);
+                }
+            });
         }
+    }
 
+    @Override
+    protected void onDestroy() {
+        _crypto.disconnect();
+        super.onDestroy();
     }
 
     private final RectF point = new RectF(0, 0, 0, 0);
@@ -236,7 +250,6 @@ public class DocumentActivity extends AppActivityBase {
             setTaskDescription(new ActivityManager.TaskDescription(title));
         }
     }
-
 
     public GsFragmentBase showTextEditor(@Nullable Document document, @Nullable File file, boolean fileIsFolder) {
         return showTextEditor(document, file, fileIsFolder, false);
@@ -340,5 +353,10 @@ public class DocumentActivity extends AppActivityBase {
             setDocument(def.getDocument()); // Apply title again. Document is modified in edit activity
         }
         return ret;
+    }
+
+    @Override
+    public CryptoServiceHelper getCrypto() {
+        return _crypto;
     }
 }

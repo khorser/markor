@@ -266,7 +266,6 @@ public class MainActivity extends AppActivityBase implements FilesystemViewerFra
         // Determine some results and forward using Local Broadcast
         Object result = _shareUtil.extractResultFromActivityResult(requestCode, resultCode, data, this);
 
-
         try {
             FilesystemViewerFragment frag = (FilesystemViewerFragment) _viewPagerAdapter.getFragmentByTag(FilesystemViewerFragment.FRAGMENT_TAG);
             frag.getAdapter().reconfigure();

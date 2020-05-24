@@ -10,6 +10,7 @@
 package net.gsantner.markor.model;
 
 import net.gsantner.markor.format.TextFormat;
+import net.gsantner.markor.util.EncryptorDecryptor;
 
 import java.io.File;
 import java.io.Serializable;
@@ -31,6 +32,9 @@ public class Document implements Serializable {
     private long _lastChanged = 0;
     private long _modTime = 0;
     private boolean _forceNoHistory = false;
+    private int docNum;
+
+    private EncryptorDecryptor _crypto;
 
     public Document() {
     }
@@ -233,5 +237,13 @@ public class Document implements Serializable {
 
     public void setModTime(long modTime) {
         _modTime = modTime;
+    }
+
+    public EncryptorDecryptor getCrypto() {
+        return _crypto;
+    }
+
+    public void setCrypto(EncryptorDecryptor crypto) {
+        _crypto = crypto;
     }
 }

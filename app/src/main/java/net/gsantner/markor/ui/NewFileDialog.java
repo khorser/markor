@@ -30,7 +30,7 @@ import android.widget.Spinner;
 
 import net.gsantner.markor.R;
 import net.gsantner.markor.util.AppSettings;
-import net.gsantner.markor.util.EncryptorDecryptorFactory;
+import net.gsantner.markor.util.CryptoServiceHelper;
 import net.gsantner.markor.util.ShareUtil;
 import net.gsantner.opoc.format.todotxt.SttCommander;
 import net.gsantner.opoc.ui.AndroidSpinnerOnItemSelectedAdapter;
@@ -238,6 +238,6 @@ public class NewFileDialog extends DialogFragment {
         }
         t = t.replace("{{ template.timestamp_date_yyyy_mm_dd }}", SttCommander.DATEF_YYYY_MM_DD.format(new Date()));
 
-        return EncryptorDecryptorFactory.getApplicable(encrypt, file, getContext()).encrypt(t);
+        return CryptoServiceHelper.getApplicable(encrypt, getActivity()).encrypt(getActivity(), t);
     }
 }
