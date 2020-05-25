@@ -45,6 +45,7 @@ import net.gsantner.markor.ui.NewFileDialog;
 import net.gsantner.markor.util.ActivityUtils;
 import net.gsantner.markor.util.AppCast;
 import net.gsantner.markor.util.AppSettings;
+import net.gsantner.markor.util.CryptoServiceHelper;
 import net.gsantner.markor.util.PermissionChecker;
 import net.gsantner.markor.util.ShareUtil;
 import net.gsantner.opoc.activity.GsFragmentBase;
@@ -66,7 +67,7 @@ import butterknife.OnClick;
 import butterknife.OnLongClick;
 import butterknife.OnPageChange;
 
-public class MainActivity extends AppActivityBase implements FilesystemViewerFragment.FilesystemFragmentOptionsListener, BottomNavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppActivityBase implements FilesystemViewerFragment.FilesystemFragmentOptionsListener, BottomNavigationView.OnNavigationItemSelectedListener, CryptoEnabledActivity {
 
     public static boolean IS_DEBUG_ENABLED = false;
 
@@ -91,6 +92,7 @@ public class MainActivity extends AppActivityBase implements FilesystemViewerFra
     private ShareUtil _shareUtil;
 
     private String _cachedFolderTitle;
+    private CryptoServiceHelper _crypto = new CryptoServiceHelper();
 
     @SuppressLint("SdCardPath")
     @Override
@@ -98,6 +100,7 @@ public class MainActivity extends AppActivityBase implements FilesystemViewerFra
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().setExitTransition(null);
         }
+        _crypto.connect(this, null);
         _appSettings = new AppSettings(this);
         _contextUtils = new ActivityUtils(this);
         _shareUtil = new ShareUtil(this);
@@ -450,6 +453,11 @@ public class MainActivity extends AppActivityBase implements FilesystemViewerFra
             });
         }
         return _filesystemDialogOptions;
+    }
+
+    @Override
+    public CryptoServiceHelper getCrypto() {
+        return null;
     }
 
     class SectionsPagerAdapter extends FragmentPagerAdapter {

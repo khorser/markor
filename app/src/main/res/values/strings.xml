@@ -390,4 +390,8 @@ work. If not, see <https://creativecommons.org/publicdomain/zero/1.0/>.
     <string name="open_pgp_provider">OpenPGP provider</string>
     <string name="error_communicating_with_open_pgp_provider">Error communicating with OpenPGP provider</string>
     <string name="open_pgp_user_id">OpenPGP user ID (email)</string>
+
+    <string name="encryption_type__no">Do not encrypt</string>
+    <string name="encryption_type__password">Encrypt with a password</string>
+    <string name="encryption_type__open_pgp">Encrypt with OpenPGP</string>
 </resources>

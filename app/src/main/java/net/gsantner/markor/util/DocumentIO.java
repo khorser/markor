@@ -79,7 +79,7 @@ public class DocumentIO {
             }
         } else if (filePath.isFile() && filePath.canRead()) {
             if (document.getCrypto() == null)
-                document.setCrypto(CryptoServiceHelper.getByExtension(filePath, activity));
+                document.setCrypto(CryptoServiceHelper.getByExtension(activity, filePath.getName()));
             // Extract content and title
             document.setTitle(filePath.getName());
             String content = null;
@@ -162,7 +162,7 @@ public class DocumentIO {
         }
 
         if (document.getCrypto() == null) {
-            document.setCrypto(CryptoServiceHelper.getByExtension(document.getFile(), activity));
+            document.setCrypto(CryptoServiceHelper.getByExtension(activity, document.getFile().getName()));
         }
         final byte[] contentAsBytes = document.getCrypto().encrypt(activity, document.getContent());
         if (contentAsBytes == null || contentAsBytes.length == 0)

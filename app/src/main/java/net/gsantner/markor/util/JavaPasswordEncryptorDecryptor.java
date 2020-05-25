@@ -45,9 +45,9 @@ public class JavaPasswordEncryptorDecryptor implements EncryptorDecryptor {
         }
     }
 
-    public static boolean eligibleForProcessing(File file, Context context) {
+    public static boolean eligibleForProcessing(Context context, String filename) {
         return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT
-                && file.getName().endsWith(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION)
+                && filename.endsWith(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION)
                 && getPassword(context) != null;
     }
 

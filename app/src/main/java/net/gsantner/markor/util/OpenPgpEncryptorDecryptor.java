@@ -26,8 +26,8 @@ public class OpenPgpEncryptorDecryptor implements EncryptorDecryptor {
     static int globalCounter = 1;
     int counter = 1;
 
-    public static boolean eligibleForProcessing(File file, Activity activity) {
-        return activity instanceof AppActivityBase && ((CryptoEnabledActivity) activity).getCrypto().isConnected() && file.getName().endsWith(ENCRYPTION_EXTENSION);
+    public static boolean eligibleForProcessing(Activity activity, String filename) {
+        return activity instanceof AppActivityBase && ((CryptoEnabledActivity) activity).getCrypto().isConnected() && filename.endsWith(ENCRYPTION_EXTENSION);
     }
 
     @Override
@@ -49,8 +49,9 @@ public class OpenPgpEncryptorDecryptor implements EncryptorDecryptor {
             case OpenPgpApi.RESULT_CODE_USER_INTERACTION_REQUIRED: {
                 PendingIntent pi = result.getParcelableExtra(OpenPgpApi.RESULT_INTENT);
                 Intent i = new Intent(activity, OpenPgpActivity.class);
-                i.putExtra(OpenPgpActivity.OPEN_PGP_INTENT, pi);
-                i.putExtra(OpenPgpActivity.OPEN_PGP_REQUEST, OpenPgpActivity.REQUEST_DECRYPT);
+                i.putExtra(OpenPgpActivity.EXTRA_OPEN_PGP_INTENT, pi);
+                i.putExtra(OpenPgpActivity.EXTRA_OPEN_PGP_REQUEST, OpenPgpActivity.REQUEST_DECRYPT);
+                i.putExtra(OpenPgpActivity.EXTRA_ENCRYPTED, encrypted);
                 activity.startActivityForResult(i, OpenPgpActivity.REQUEST_DECRYPT);
                 return null;
             }
@@ -79,8 +80,9 @@ public class OpenPgpEncryptorDecryptor implements EncryptorDecryptor {
             case OpenPgpApi.RESULT_CODE_USER_INTERACTION_REQUIRED: {
                 PendingIntent pi = result.getParcelableExtra(OpenPgpApi.RESULT_INTENT);
                 Intent i = new Intent(activity, OpenPgpActivity.class);
-                i.putExtra(OpenPgpActivity.OPEN_PGP_INTENT, pi);
-                i.putExtra(OpenPgpActivity.OPEN_PGP_REQUEST, OpenPgpActivity.REQUEST_ENCRYPT);
+                i.putExtra(OpenPgpActivity.EXTRA_OPEN_PGP_INTENT, pi);
+                i.putExtra(OpenPgpActivity.EXTRA_OPEN_PGP_REQUEST, OpenPgpActivity.REQUEST_ENCRYPT);
+                i.putExtra(OpenPgpActivity.EXTRA_DECRYPTED, content);
                 activity.startActivityForResult(i, OpenPgpActivity.REQUEST_ENCRYPT);
                 return null;
             }

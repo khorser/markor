@@ -93,11 +93,8 @@ public class SettingsActivity extends AppActivityBase implements CryptoEnabledAc
         toolbar.setNavigationIcon(getResources().getDrawable(R.drawable.ic_arrow_back_white_24dp));
         toolbar.setNavigationOnClickListener(view -> SettingsActivity.this.onBackPressed());
 
-        _crypto.connect(this, new Runnable() {
-            @Override
-            public void run() {
-                showFragment(SettingsFragmentMaster.TAG, false);
-            }
+        _crypto.connect(this, () -> {
+            showFragment(SettingsFragmentMaster.TAG, false);
         });
     }
 
@@ -256,7 +253,7 @@ public class SettingsActivity extends AppActivityBase implements CryptoEnabledAc
                 _as.setPasswordHasBeenSetOnce(true);
             } else if (eq(key, R.string.pref_key__open_pgp_user_id)) {
                 if (!((CryptoEnabledActivity) getActivity()).getCrypto().areUserIdsValid(getActivity(), _as.getOpenPgpUserIds())) {
-                    Toast.makeText(getActivity(), "User IDs are not valid, you will not able to encrypt files", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), "User IDs are not valid, you will have to select an encryption key each time you encrypt files", Toast.LENGTH_LONG).show();
                 }
             }
         }

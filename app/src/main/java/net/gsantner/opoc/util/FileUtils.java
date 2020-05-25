@@ -502,11 +502,9 @@ public class FileUtils {
             return filename;
     }
 
-    public static String appendEncryptionExtension(String filename) {
-        if (!filename.endsWith(DEFAULT_ENCRYPTION_EXTENSION))
-            return filename + DEFAULT_ENCRYPTION_EXTENSION;
-        else if (!filename.endsWith(ENCRYPTION_EXTENSION))
-            return filename + ENCRYPTION_EXTENSION;
+    public static String appendExtension(String filename, String extension) {
+        if (!filename.endsWith(extension))
+            return filename + extension;
         else
             return filename;
     }

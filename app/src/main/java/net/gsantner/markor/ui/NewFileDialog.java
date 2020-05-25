@@ -24,13 +24,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.CheckBox;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
 
 import net.gsantner.markor.R;
 import net.gsantner.markor.util.AppSettings;
 import net.gsantner.markor.util.CryptoServiceHelper;
+import net.gsantner.markor.util.OpenPgpEncryptorDecryptor;
 import net.gsantner.markor.util.ShareUtil;
 import net.gsantner.opoc.format.todotxt.SttCommander;
 import net.gsantner.opoc.ui.AndroidSpinnerOnItemSelectedAdapter;
@@ -39,8 +40,12 @@ import net.gsantner.opoc.util.ContextUtils;
 import net.gsantner.opoc.util.FileUtils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import other.de.stanetz.jpencconverter.JavaPasswordbasedCryption;
 
 public class NewFileDialog extends DialogFragment {
     public static final String FRAGMENT_TAG = "net.gsantner.markor.ui.NewFileDialog";
@@ -81,16 +86,29 @@ public class NewFileDialog extends DialogFragment {
 
         final EditText fileNameEdit = root.findViewById(R.id.new_file_dialog__name);
         final EditText fileExtEdit = root.findViewById(R.id.new_file_dialog__ext);
-        final CheckBox encryptCheckbox = root.findViewById(R.id.new_file_dialog__encrypt);
         final Spinner typeSpinner = root.findViewById(R.id.new_file_dialog__type);
         final Spinner templateSpinner = root.findViewById(R.id.new_file_dialog__template);
         final String[] typeSpinnerToExtension = getResources().getStringArray(R.array.new_file_types__file_extension);
+        final Spinner encryptionTypeSpinner = root.findViewById(R.id.new_file_dialog__encryption_type);
 
+        List<String> encryptionTypes = new ArrayList<>();
+        List<String> encryptionExtensions = new ArrayList<>();
+        encryptionTypes.add(getString(R.string.encryption_type__no));
+        encryptionExtensions.add("");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && appSettings.hasPasswordBeenSetOnce()) {
-            encryptCheckbox.setChecked(appSettings.getNewFileDialogLastUsedEncryption());
-        } else {
-            encryptCheckbox.setVisibility(View.GONE);
+            encryptionTypes.add(getString(R.string.encryption_type__password));
+            encryptionExtensions.add(JavaPasswordbasedCryption.DEFAULT_ENCRYPTION_EXTENSION);
         }
+        if (!appSettings.getOpenPgpProvider().equals("")) {
+            encryptionTypes.add(getString(R.string.encryption_type__open_pgp));
+            encryptionExtensions.add(OpenPgpEncryptorDecryptor.ENCRYPTION_EXTENSION);
+        }
+        ArrayAdapter<CharSequence> encryptionTypeAdapter = new ArrayAdapter(getContext(),
+                android.R.layout.simple_spinner_item, encryptionTypes);
+        encryptionTypeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        encryptionTypeSpinner.setAdapter(encryptionTypeAdapter);
+        // TODO set position according to appSettings.getNewFileDialogLastUsedEncryptionExtension
+
         fileExtEdit.setText(appSettings.getNewFileDialogLastUsedExtension());
         fileNameEdit.requestFocus();
         new Handler().postDelayed(new ContextUtils.DoTouchView(fileNameEdit), 200);
@@ -106,11 +124,7 @@ public class NewFileDialog extends DialogFragment {
             String ext = pos < typeSpinnerToExtension.length ? typeSpinnerToExtension[pos] : "";
 
             if (ext != null) {
-                if (encryptCheckbox.isChecked()) {
-                    fileExtEdit.setText(FileUtils.appendEncryptionExtension(ext));
-                } else {
-                    fileExtEdit.setText(ext);
-                }
+                fileExtEdit.setText(FileUtils.appendExtension(ext, encryptionExtensions.get(encryptionTypeSpinner.getSelectedItemPosition())));
             }
             fileNameEdit.setSelection(fileNameEdit.length());
         }));
@@ -127,15 +141,13 @@ public class NewFileDialog extends DialogFragment {
             fileNameEdit.setSelection(fileNameEdit.length());
         }));
 
-        encryptCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            final String currentExtention = fileExtEdit.getText().toString();
-            if (isChecked) {
-                fileExtEdit.setText(FileUtils.appendEncryptionExtension(currentExtention));
-            } else {
-                fileExtEdit.setText(FileUtils.stripEncryptionExtension(currentExtention));
-            }
-            appSettings.setNewFileDialogLastUsedEncryption(isChecked);
-        });
+        encryptionTypeSpinner.setOnItemSelectedListener(new AndroidSpinnerOnItemSelectedAdapter(pos -> {
+            String currentExtension = fileExtEdit.getText().toString();
+            currentExtension = FileUtils.stripEncryptionExtension(currentExtension);
+            if (pos > 0)
+                fileExtEdit.setText(FileUtils.appendExtension(currentExtension, encryptionExtensions.get(pos)));
+            appSettings.setNewFileDialogLastUsedEncryptionExtension(encryptionExtensions.get(pos));
+        }));
 
         dialogBuilder.setView(root);
         fileNameEdit.requestFocus();
@@ -150,7 +162,7 @@ public class NewFileDialog extends DialogFragment {
 
                     appSettings.setNewFileDialogLastUsedExtension(fileExtEdit.getText().toString().trim());
                     final File f = new File(basedir, fileNameEdit.getText().toString().trim() + fileExtEdit.getText().toString().trim());
-                    final byte[] templateContents = getTemplateContent(templateSpinner, basedir, f, encryptCheckbox.isChecked());
+                    final byte[] templateContents = getTemplateContent(templateSpinner, basedir, f, encryptionExtensions.get(encryptionTypeSpinner.getSelectedItemPosition()));
                     shareUtil.writeFile(f, false, (arg_ok, arg_fos) -> {
                         try {
                             if (f.exists() && f.length() < 5 && templateContents != null) {
@@ -196,7 +208,7 @@ public class NewFileDialog extends DialogFragment {
     //
     // 2) t = "<cursor>";  | ctrl+shift+v "paste without formatting"
     //
-    private byte[] getTemplateContent(final Spinner templateSpinner, final File basedir, File file, final boolean encrypt) {
+    private byte[] getTemplateContent(final Spinner templateSpinner, final File basedir, File file, String extension) {
         String t = null;
         byte[] bytes = null;
         switch (templateSpinner.getSelectedItemPosition()) {
@@ -238,6 +250,6 @@ public class NewFileDialog extends DialogFragment {
         }
         t = t.replace("{{ template.timestamp_date_yyyy_mm_dd }}", SttCommander.DATEF_YYYY_MM_DD.format(new Date()));
 
-        return CryptoServiceHelper.getApplicable(encrypt, getActivity()).encrypt(getActivity(), t);
+        return CryptoServiceHelper.getByExtension(getActivity(), extension).encrypt(getActivity(), t);
     }
 }

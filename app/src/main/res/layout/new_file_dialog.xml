@@ -109,12 +109,12 @@
             android:drawSelectorOnTop="true"
             android:entries="@array/arr_file_templates" />
 
-        <CheckBox
-            android:id="@+id/new_file_dialog__encrypt"
+        <Spinner
+            android:id="@+id/new_file_dialog__encryption_type"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/encrypt_file_content" />
+	    android:drawSelectorOnTop="true" />
 
         <TextView
             style="@style/TextAppearance.AppCompat.Caption"

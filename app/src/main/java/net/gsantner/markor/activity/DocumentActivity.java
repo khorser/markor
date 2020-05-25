@@ -193,11 +193,8 @@ public class DocumentActivity extends AppActivityBase implements CryptoEnabledAc
         if (file != null) {
             boolean preview = receivingIntent.getBooleanExtra(EXTRA_DO_PREVIEW, false) || _appSettings.isPreviewFirst() && file.exists() && file.isFile() || file.getName().startsWith("index.");
             File finalFile = file;
-            _crypto.connect(this, new Runnable() {
-                @Override
-                public void run() {
-                    showTextEditor(null, finalFile, fileIsFolder, preview);
-                }
+            _crypto.connect(this, () -> {
+                showTextEditor(null, finalFile, fileIsFolder, preview);
             });
         }
     }
