@@ -27,7 +27,7 @@ public class OpenPgpEncryptorDecryptor implements EncryptorDecryptor {
     int counter = 1;
 
     public static boolean eligibleForProcessing(Activity activity, String filename) {
-        return activity instanceof AppActivityBase && ((CryptoEnabledActivity) activity).getCrypto().isConnected() && filename.endsWith(ENCRYPTION_EXTENSION);
+        return filename.endsWith(ENCRYPTION_EXTENSION) && activity instanceof CryptoEnabledActivity && ((CryptoEnabledActivity) activity).getCrypto().isConnected();
     }
 
     @Override

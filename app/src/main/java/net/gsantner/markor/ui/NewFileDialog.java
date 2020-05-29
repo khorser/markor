@@ -107,7 +107,11 @@ public class NewFileDialog extends DialogFragment {
                 android.R.layout.simple_spinner_item, encryptionTypes);
         encryptionTypeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         encryptionTypeSpinner.setAdapter(encryptionTypeAdapter);
-        // TODO set position according to appSettings.getNewFileDialogLastUsedEncryptionExtension
+        int priorPos = encryptionExtensions.lastIndexOf(appSettings.getNewFileDialogLastUsedEncryptionExtension());
+        if (priorPos >= 0)
+            encryptionTypeSpinner.setSelection(priorPos);
+        if (encryptionTypeAdapter.getCount() < 2)
+            encryptionTypeSpinner.setVisibility(View.GONE);
 
         fileExtEdit.setText(appSettings.getNewFileDialogLastUsedExtension());
         fileNameEdit.requestFocus();

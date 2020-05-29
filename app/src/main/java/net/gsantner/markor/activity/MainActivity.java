@@ -457,7 +457,7 @@ public class MainActivity extends AppActivityBase implements FilesystemViewerFra
 
     @Override
     public CryptoServiceHelper getCrypto() {
-        return null;
+        return _crypto;
     }
 
     class SectionsPagerAdapter extends FragmentPagerAdapter {
